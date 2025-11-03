@@ -18,35 +18,35 @@
             {
                 "command": "launch-runner.selectConfiguration",
                 "title": "Select Configuration",
-                "icon": "$(gear)"
+                "icon": "$(kebab-vertical)"
             },
             {
                 "command": "launch-runner.run",
                 "title": "Run",
-                "icon": "$(play)"
+                "icon": "$(run)"
             },
             {
                 "command": "launch-runner.debug",
                 "title": "Debug",
-                "icon": "$(debug-alt)"
+                "icon": "$(debug)"
             }
         ],
         "menus": {
             "editor/title": [
                 {
-                    "command": "launch-runner.selectConfiguration",
-                    "when": "editorTextFocus || !editorTextFocus",
-                    "group": "navigation@0"
-                },
-                {
                     "command": "launch-runner.run",
-                    "when": "editorTextFocus || !editorTextFocus",
-                    "group": "navigation@1"
+                    "when": "launch-runner.hasConfiguration",
+                    "group": "navigation@-1000"
                 },
                 {
                     "command": "launch-runner.debug",
+                    "when": "launch-runner.hasConfiguration && !launch-runner.isTaskSelected",
+                    "group": "navigation@-999"
+                },
+                {
+                    "command": "launch-runner.selectConfiguration",
                     "when": "editorTextFocus || !editorTextFocus",
-                    "group": "navigation@2"
+                    "group": "navigation@-998"
                 }
             ]
         }

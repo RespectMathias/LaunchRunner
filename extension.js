@@ -4,6 +4,17 @@ let lastSelectedConfig = null;
 let lastSelectedType = 'launch'; // 'launch' or 'task'
 
 /**
+ * Update context for conditional UI visibility
+ */
+function updateContext() {
+    const isTaskSelected = lastSelectedType === 'task';
+    const hasConfig = lastSelectedConfig !== null;
+
+    vscode.commands.executeCommand('setContext', 'launch-runner.isTaskSelected', isTaskSelected);
+    vscode.commands.executeCommand('setContext', 'launch-runner.hasConfiguration', hasConfig);
+}
+
+/**
  * Get all debug configurations from launch.json
  * @returns {Array} Array of debug configurations
  */
@@ -144,6 +155,7 @@ async function selectConfiguration() {
     if (selected.config) {
         lastSelectedConfig = selected.config;
         lastSelectedType = selected.config.configType;
+        updateContext();
     }
 
     return selected.config;
@@ -183,6 +195,7 @@ async function executeConfiguration(noDebug = false) {
             configuration = configs[0];
             lastSelectedConfig = configuration;
             lastSelectedType = configuration.configType;
+            updateContext();
         } else if (configs.length > 1) {
             configuration = await selectConfiguration();
         } else {
@@ -241,10 +254,30 @@ async function executeConfiguration(noDebug = false) {
 }
 
 /**
+ * Initialize default configuration on activation
+ */
+async function initializeDefaultConfiguration() {
+    // Try to select first launch configuration by default
+    const launchConfigs = getDebugConfigurations();
+
+    if (launchConfigs.length > 0) {
+        lastSelectedConfig = launchConfigs[0];
+        lastSelectedType = 'launch';
+        updateContext();
+    } else {
+        // No launch configs, just update context to show nothing selected
+        updateContext();
+    }
+}
+
+/**
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
     console.log('Launch Runner extension is now active');
+
+    // Initialize with first launch config if available
+    initializeDefaultConfiguration();
 
     // Register the Select Configuration command (gear icon - JetBrains style dropdown)
     let selectConfigDisposable = vscode.commands.registerCommand('launch-runner.selectConfiguration', async () => {
