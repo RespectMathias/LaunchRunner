@@ -1,0 +1,54 @@
+{
+    "name": "launch-runner",
+    "displayName": "Launch Runner",
+    "description": "Always shows Run/Debug buttons in the editor title bar using launch.json configurations",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.80.0"
+    },
+    "categories": [
+        "Debuggers"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "launch-runner.run",
+                "title": "Run",
+                "icon": "$(run)"
+            },
+            {
+                "command": "launch-runner.debug",
+                "title": "Debug",
+                "icon": "$(debug)"
+            }
+        ],
+        "menus": {
+            "editor/title": [
+                {
+                    "command": "launch-runner.run",
+                    "when": "editorTextFocus || !editorTextFocus",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "launch-runner.debug",
+                    "when": "editorTextFocus || !editorTextFocus",
+                    "group": "navigation@2"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "lint": "eslint .",
+        "pretest": "npm run lint",
+        "test": "node ./test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.80.0",
+        "@types/node": "^16.x",
+        "eslint": "^8.41.0"
+    }
+}
