@@ -335,6 +335,12 @@ async function initializeDefaultConfiguration() {
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
+    // Don't activate in Extension Development Host to avoid duplicate buttons
+    if (process.env.VSCODE_EXTHOST_WILL_SEND_SOCKET) {
+        console.log('Launch Runner: Skipping activation in Extension Development Host');
+        return;
+    }
+
     console.log('Launch Runner extension is now active');
 
     // Initialize with first launch config if available
