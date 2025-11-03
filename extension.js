@@ -193,17 +193,17 @@ async function debugConfiguration() {
  * Stop the currently running session
  */
 async function stopConfiguration() {
-    if (currentSession) {
-        if (lastSelectedType === 'task') {
-            // Terminate task
+    if (lastSelectedType === 'task') {
+        // Terminate task
+        if (currentSession) {
             currentSession.terminate();
-        } else {
-            // Stop debug session
-            await vscode.debug.stopDebugging(currentSession);
+            currentSession = null;
+            isRunning = false;
+            updateContext();
         }
-        currentSession = null;
-        isRunning = false;
-        updateContext();
+    } else {
+        // For debug sessions, use VS Code's built-in stop command
+        await vscode.commands.executeCommand('workbench.action.debug.stop');
     }
 }
 
@@ -211,17 +211,14 @@ async function stopConfiguration() {
  * Restart the currently running session
  */
 async function restartConfiguration() {
-    await stopConfiguration();
-    // Small delay to ensure clean stop
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    if (lastSelectedConfig) {
-        if (lastSelectedType === 'task') {
-            await executeConfiguration(true);
-        } else {
-            // Restart with same debug/run mode
-            await executeConfiguration(currentSession?.configuration?.noDebug ?? true);
-        }
+    if (lastSelectedType === 'task') {
+        // For tasks, we need to stop and start manually
+        await stopConfiguration();
+        await new Promise(resolve => setTimeout(resolve, 300));
+        await executeConfiguration(true);
+    } else {
+        // For debug sessions, use VS Code's built-in restart command
+        await vscode.commands.executeCommand('workbench.action.debug.restart');
     }
 }
 
@@ -290,17 +287,13 @@ async function executeConfiguration(noDebug = false) {
         isRunning = true;
         updateContext();
     } else {
-        // Run launch configuration - need to pass the original config without our added properties
-        const launchConfig = { ...configuration };
-        delete launchConfig.configType;
-        delete launchConfig.displayType;
-
+        // Run launch configuration by name - VS Code will handle all the details
         isRunning = true;
         updateContext();
 
         const success = await vscode.debug.startDebugging(
             workspaceFolders[0],
-            launchConfig,
+            configuration.name,
             { noDebug: noDebug }
         );
 
