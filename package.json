@@ -16,11 +16,6 @@
     "contributes": {
         "commands": [
             {
-                "command": "launch-runner.selectConfiguration",
-                "title": "Select Configuration",
-                "icon": "$(kebab-vertical)"
-            },
-            {
                 "command": "launch-runner.run",
                 "title": "Run",
                 "icon": "$(run)"
@@ -29,18 +24,43 @@
                 "command": "launch-runner.debug",
                 "title": "Debug",
                 "icon": "$(debug)"
+            },
+            {
+                "command": "launch-runner.stop",
+                "title": "Stop",
+                "icon": "$(debug-stop)"
+            },
+            {
+                "command": "launch-runner.restart",
+                "title": "Restart",
+                "icon": "$(debug-restart)"
+            },
+            {
+                "command": "launch-runner.selectConfiguration",
+                "title": "Select Configuration",
+                "icon": "$(kebab-vertical)"
             }
         ],
         "menus": {
             "editor/title": [
                 {
                     "command": "launch-runner.run",
-                    "when": "launch-runner.hasConfiguration",
+                    "when": "launch-runner.hasConfiguration && !launch-runner.isRunning",
+                    "group": "navigation@-1000"
+                },
+                {
+                    "command": "launch-runner.restart",
+                    "when": "launch-runner.hasConfiguration && launch-runner.isRunning",
                     "group": "navigation@-1000"
                 },
                 {
                     "command": "launch-runner.debug",
-                    "when": "launch-runner.hasConfiguration && !launch-runner.isTaskSelected",
+                    "when": "launch-runner.hasConfiguration && !launch-runner.isTaskSelected && !launch-runner.isRunning",
+                    "group": "navigation@-999"
+                },
+                {
+                    "command": "launch-runner.stop",
+                    "when": "launch-runner.isRunning",
                     "group": "navigation@-999"
                 },
                 {

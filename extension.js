@@ -2,6 +2,8 @@ const vscode = require('vscode');
 
 let lastSelectedConfig = null;
 let lastSelectedType = 'launch'; // 'launch' or 'task'
+let currentSession = null; // Track active debug/task session
+let isRunning = false; // Track if something is currently running
 
 /**
  * Update context for conditional UI visibility
@@ -12,6 +14,17 @@ function updateContext() {
 
     vscode.commands.executeCommand('setContext', 'launch-runner.isTaskSelected', isTaskSelected);
     vscode.commands.executeCommand('setContext', 'launch-runner.hasConfiguration', hasConfig);
+    vscode.commands.executeCommand('setContext', 'launch-runner.isRunning', isRunning);
+}
+
+/**
+ * Update button tooltips with current configuration name
+ */
+function updateCommandTitles() {
+    if (lastSelectedConfig) {
+        const configName = lastSelectedConfig.name;
+        vscode.commands.executeCommand('setContext', 'launch-runner.configName', configName);
+    }
 }
 
 /**
@@ -156,6 +169,7 @@ async function selectConfiguration() {
         lastSelectedConfig = selected.config;
         lastSelectedType = selected.config.configType;
         updateContext();
+        updateCommandTitles();
     }
 
     return selected.config;
@@ -173,6 +187,42 @@ async function runConfiguration() {
  */
 async function debugConfiguration() {
     await executeConfiguration(false); // noDebug = false
+}
+
+/**
+ * Stop the currently running session
+ */
+async function stopConfiguration() {
+    if (currentSession) {
+        if (lastSelectedType === 'task') {
+            // Terminate task
+            currentSession.terminate();
+        } else {
+            // Stop debug session
+            await vscode.debug.stopDebugging(currentSession);
+        }
+        currentSession = null;
+        isRunning = false;
+        updateContext();
+    }
+}
+
+/**
+ * Restart the currently running session
+ */
+async function restartConfiguration() {
+    await stopConfiguration();
+    // Small delay to ensure clean stop
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    if (lastSelectedConfig) {
+        if (lastSelectedType === 'task') {
+            await executeConfiguration(true);
+        } else {
+            // Restart with same debug/run mode
+            await executeConfiguration(currentSession?.configuration?.noDebug ?? true);
+        }
+    }
 }
 
 /**
@@ -196,6 +246,7 @@ async function executeConfiguration(noDebug = false) {
             lastSelectedConfig = configuration;
             lastSelectedType = configuration.configType;
             updateContext();
+            updateCommandTitles();
         } else if (configs.length > 1) {
             configuration = await selectConfiguration();
         } else {
@@ -234,12 +285,18 @@ async function executeConfiguration(noDebug = false) {
     // Execute based on type
     if (configuration.configType === 'task') {
         // Run task
-        await vscode.tasks.executeTask(configuration.task);
+        const execution = await vscode.tasks.executeTask(configuration.task);
+        currentSession = execution;
+        isRunning = true;
+        updateContext();
     } else {
         // Run launch configuration - need to pass the original config without our added properties
         const launchConfig = { ...configuration };
         delete launchConfig.configType;
         delete launchConfig.displayType;
+
+        isRunning = true;
+        updateContext();
 
         const success = await vscode.debug.startDebugging(
             workspaceFolders[0],
@@ -249,6 +306,9 @@ async function executeConfiguration(noDebug = false) {
 
         if (!success) {
             vscode.window.showErrorMessage(`Failed to start ${noDebug ? 'running' : 'debugging'}: ${configuration.name}`);
+            isRunning = false;
+            currentSession = null;
+            updateContext();
         }
     }
 }
@@ -264,6 +324,7 @@ async function initializeDefaultConfiguration() {
         lastSelectedConfig = launchConfigs[0];
         lastSelectedType = 'launch';
         updateContext();
+        updateCommandTitles();
     } else {
         // No launch configs, just update context to show nothing selected
         updateContext();
@@ -278,6 +339,36 @@ function activate(context) {
 
     // Initialize with first launch config if available
     initializeDefaultConfiguration();
+
+    // Track debug session changes
+    context.subscriptions.push(
+        vscode.debug.onDidStartDebugSession((session) => {
+            currentSession = session;
+            isRunning = true;
+            updateContext();
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.debug.onDidTerminateDebugSession((session) => {
+            if (currentSession === session) {
+                currentSession = null;
+                isRunning = false;
+                updateContext();
+            }
+        })
+    );
+
+    // Track task execution changes
+    context.subscriptions.push(
+        vscode.tasks.onDidEndTask((e) => {
+            if (currentSession === e.execution) {
+                currentSession = null;
+                isRunning = false;
+                updateContext();
+            }
+        })
+    );
 
     // Register the Select Configuration command (gear icon - JetBrains style dropdown)
     let selectConfigDisposable = vscode.commands.registerCommand('launch-runner.selectConfiguration', async () => {
@@ -294,9 +385,21 @@ function activate(context) {
         await debugConfiguration();
     });
 
+    // Register the Stop command
+    let stopDisposable = vscode.commands.registerCommand('launch-runner.stop', async () => {
+        await stopConfiguration();
+    });
+
+    // Register the Restart command
+    let restartDisposable = vscode.commands.registerCommand('launch-runner.restart', async () => {
+        await restartConfiguration();
+    });
+
     context.subscriptions.push(selectConfigDisposable);
     context.subscriptions.push(runDisposable);
     context.subscriptions.push(debugDisposable);
+    context.subscriptions.push(stopDisposable);
+    context.subscriptions.push(restartDisposable);
 }
 
 function deactivate() { }
