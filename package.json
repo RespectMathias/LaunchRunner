@@ -1,8 +1,14 @@
 {
     "name": "launch-runner",
     "displayName": "Launch Runner",
-    "description": "Always shows Run/Debug buttons in the editor title bar using launch.json configurations",
+    "description": "JetBrains-style run/debug buttons for VS Code with quick access to launch configurations and tasks",
     "version": "0.0.1",
+    "publisher": "launch-runner",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/yourusername/launch-runner"
+    },
     "engines": {
         "vscode": "^1.80.0"
     },
