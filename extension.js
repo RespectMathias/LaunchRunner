@@ -202,7 +202,9 @@ async function stopConfiguration() {
             updateContext();
         }
     } else {
-        // For debug sessions, use VS Code's built-in stop command
+        // For debug sessions, use both disconnect and stop to handle all cases
+        // (especially when paused at breakpoints)
+        await vscode.commands.executeCommand('workbench.action.debug.disconnect');
         await vscode.commands.executeCommand('workbench.action.debug.stop');
     }
 }
