@@ -16,18 +16,28 @@
     "contributes": {
         "commands": [
             {
+                "command": "launch-runner.selectConfiguration",
+                "title": "Select Configuration",
+                "icon": "$(gear)"
+            },
+            {
                 "command": "launch-runner.run",
                 "title": "Run",
-                "icon": "$(run)"
+                "icon": "$(play)"
             },
             {
                 "command": "launch-runner.debug",
                 "title": "Debug",
-                "icon": "$(debug)"
+                "icon": "$(debug-alt)"
             }
         ],
         "menus": {
             "editor/title": [
+                {
+                    "command": "launch-runner.selectConfiguration",
+                    "when": "editorTextFocus || !editorTextFocus",
+                    "group": "navigation@0"
+                },
                 {
                     "command": "launch-runner.run",
                     "when": "editorTextFocus || !editorTextFocus",

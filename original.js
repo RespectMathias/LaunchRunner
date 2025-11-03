@@ -15,8 +15,7 @@ function getDebugConfigurations() {
 
     const config = vscode.workspace.getConfiguration('launch', workspaceFolders[0].uri);
     const configurations = config.get('configurations') || [];
-    // Don't overwrite 'type' - add a separate property to identify it's a launch config
-    return configurations.map(c => ({ ...c, configType: 'launch', displayType: 'Launch' }));
+    return configurations.map(c => ({ ...c, type: 'launch', displayType: 'Launch' }));
 }
 
 /**
@@ -27,7 +26,7 @@ async function getTasks() {
     const tasks = await vscode.tasks.fetchTasks();
     return tasks.map(t => ({
         name: t.name,
-        configType: 'task',
+        type: 'task',
         displayType: 'Task',
         task: t
     }));
@@ -83,8 +82,8 @@ async function selectConfiguration() {
     });
 
     // Group by type
-    const launches = configurations.filter(c => c.configType === 'launch');
-    const tasks = configurations.filter(c => c.configType === 'task');
+    const launches = configurations.filter(c => c.type === 'launch');
+    const tasks = configurations.filter(c => c.type === 'task');
 
     if (launches.length > 0) {
         items.push({
@@ -143,7 +142,7 @@ async function selectConfiguration() {
 
     if (selected.config) {
         lastSelectedConfig = selected.config;
-        lastSelectedType = selected.config.configType;
+        lastSelectedType = selected.config.type;
     }
 
     return selected.config;
@@ -182,7 +181,7 @@ async function executeConfiguration(noDebug = false) {
         if (configs.length === 1) {
             configuration = configs[0];
             lastSelectedConfig = configuration;
-            lastSelectedType = configuration.configType;
+            lastSelectedType = configuration.type;
         } else if (configs.length > 1) {
             configuration = await selectConfiguration();
         } else {
@@ -208,7 +207,7 @@ async function executeConfiguration(noDebug = false) {
 
     // Verify the configuration still exists
     const allConfigs = await getAllConfigurations();
-    const stillExists = allConfigs.find(c => c.name === configuration.name && c.configType === configuration.configType);
+    const stillExists = allConfigs.find(c => c.name === configuration.name && c.type === configuration.type);
 
     if (!stillExists) {
         vscode.window.showWarningMessage(`Configuration "${configuration.name}" no longer exists. Please select a new one.`);
@@ -219,18 +218,14 @@ async function executeConfiguration(noDebug = false) {
     }
 
     // Execute based on type
-    if (configuration.configType === 'task') {
+    if (configuration.type === 'task') {
         // Run task
         await vscode.tasks.executeTask(configuration.task);
     } else {
-        // Run launch configuration - need to pass the original config without our added properties
-        const launchConfig = { ...configuration };
-        delete launchConfig.configType;
-        delete launchConfig.displayType;
-
+        // Run launch configuration
         const success = await vscode.debug.startDebugging(
             workspaceFolders[0],
-            launchConfig,
+            configuration,
             { noDebug: noDebug }
         );
 
