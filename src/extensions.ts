@@ -92,6 +92,9 @@ function createExtensionController(
   let lastLaunchNoDebug = true;
   let currentSession: vscode.DebugSession | vscode.TaskExecution | null = null;
   let isRunning = false;
+  let isStartingConfiguration = false;
+
+  void env;
 
   async function updateContext(): Promise<void> {
     await api.commands.executeCommand(
@@ -281,78 +284,99 @@ function createExtensionController(
   }
 
   async function executeConfiguration(noDebug: boolean): Promise<void> {
-    const folders = api.workspace.workspaceFolders;
-    if (!folders || folders.length === 0) {
-      await api.window.showErrorMessage("No workspace folder open");
+    if (isStartingConfiguration) {
       return;
     }
 
-    let selectedConfig: Selection | undefined = lastSelectedConfig ?? undefined;
+    isStartingConfiguration = true;
 
-    if (!selectedConfig) {
-      const allConfigurations = await getAllConfigurations();
-
-      if (allConfigurations.length === 0) {
-        await promptToCreateConfigurations();
+    try {
+      const folders = api.workspace.workspaceFolders;
+      if (!folders || folders.length === 0) {
+        await api.window.showErrorMessage("No workspace folder open");
         return;
       }
 
-      if (allConfigurations.length === 1) {
-        selectedConfig = allConfigurations[0];
-        lastSelectedConfig = selectedConfig;
-        lastSelectedType = selectedConfig.configType;
-        await updateContext();
-        await updateCommandTitle();
-      } else {
-        selectedConfig = await selectConfiguration();
+      let selectedConfig: Selection | undefined =
+        lastSelectedConfig ?? undefined;
+
+      if (!selectedConfig) {
+        const allConfigurations = await getAllConfigurations();
+
+        if (allConfigurations.length === 0) {
+          await promptToCreateConfigurations();
+          return;
+        }
+
+        if (allConfigurations.length === 1) {
+          selectedConfig = allConfigurations[0];
+          lastSelectedConfig = selectedConfig;
+          lastSelectedType = selectedConfig.configType;
+          await updateContext();
+          await updateCommandTitle();
+        } else {
+          selectedConfig = await selectConfiguration();
+        }
       }
-    }
 
-    if (!selectedConfig) {
-      return;
-    }
-
-    const availableNow = await getAllConfigurations();
-    const stillExists = availableNow.some(
-      (candidate) =>
-        candidate.name === selectedConfig?.name &&
-        candidate.configType === selectedConfig?.configType,
-    );
-
-    if (!stillExists) {
-      await api.window.showWarningMessage(
-        `Configuration "${selectedConfig.name}" no longer exists. Please select a new one.`,
-      );
-      selectedConfig = await selectConfiguration();
       if (!selectedConfig) {
         return;
       }
-    }
 
-    if (selectedConfig.configType === "task") {
-      currentSession = await api.tasks.executeTask(selectedConfig.task);
-      isRunning = true;
-      await updateContext();
-      return;
-    }
-
-    lastLaunchNoDebug = noDebug;
-    isRunning = true;
-    await updateContext();
-
-    const success = await api.debug.startDebugging(
-      folders[0],
-      selectedConfig.name,
-      { noDebug },
-    );
-
-    if (!success) {
-      await api.window.showErrorMessage(
-        `Failed to start ${noDebug ? "running" : "debugging"}: ${selectedConfig.name}`,
+      const availableNow = await getAllConfigurations();
+      const stillExists = availableNow.some(
+        (candidate) =>
+          candidate.name === selectedConfig?.name &&
+          candidate.configType === selectedConfig?.configType,
       );
-      currentSession = null;
-      isRunning = false;
-      await updateContext();
+
+      if (!stillExists) {
+        await api.window.showWarningMessage(
+          `Configuration "${selectedConfig.name}" no longer exists. Please select a new one.`,
+        );
+        selectedConfig = await selectConfiguration();
+        if (!selectedConfig) {
+          return;
+        }
+      }
+
+      if (selectedConfig.configType === "task") {
+        currentSession = await api.tasks.executeTask(selectedConfig.task);
+        isRunning = true;
+        await updateContext();
+        return;
+      }
+
+      lastLaunchNoDebug = noDebug;
+      try {
+        const success = await api.debug.startDebugging(
+          folders[0],
+          selectedConfig.name,
+          { noDebug },
+        );
+
+        if (!success) {
+          await api.window.showErrorMessage(
+            `Failed to start ${noDebug ? "running" : "debugging"}: ${selectedConfig.name}`,
+          );
+          currentSession = null;
+          isRunning = false;
+          await updateContext();
+          return;
+        }
+
+        isRunning = true;
+        await updateContext();
+      } catch {
+        currentSession = null;
+        isRunning = false;
+        await updateContext();
+        await api.window.showErrorMessage(
+          `Failed to start ${noDebug ? "running" : "debugging"}: ${selectedConfig.name}`,
+        );
+      }
+    } finally {
+      isStartingConfiguration = false;
     }
   }
 
@@ -369,24 +393,39 @@ function createExtensionController(
 
     if (currentSession && !isTaskExecution(currentSession)) {
       await api.debug.stopDebugging(currentSession);
-      return;
+    } else {
+      await api.debug.stopDebugging();
     }
 
-    await api.debug.stopDebugging();
     await api.commands.executeCommand("workbench.action.debug.disconnect");
     await api.commands.executeCommand("workbench.action.debug.stop");
+    currentSession = null;
+    isRunning = false;
+    await updateContext();
+  }
+
+  async function waitUntilStopped(timeoutMs = 2000): Promise<void> {
+    const startedAt = Date.now();
+    while (isRunning && Date.now() - startedAt < timeoutMs) {
+      await wait(25);
+    }
   }
 
   async function restartConfiguration(): Promise<void> {
     if (lastSelectedType === "task") {
       await stopConfiguration();
-      await wait(300);
+      await waitUntilStopped();
       await executeConfiguration(true);
       return;
     }
 
+    if (currentSession && !isTaskExecution(currentSession)) {
+      await api.commands.executeCommand("workbench.action.debug.restart");
+      return;
+    }
+
     await stopConfiguration();
-    await wait(300);
+    await waitUntilStopped();
     await executeConfiguration(lastLaunchNoDebug);
   }
 
@@ -405,10 +444,6 @@ function createExtensionController(
   }
 
   async function activate(context: vscode.ExtensionContext): Promise<void> {
-    if (env.VSCODE_EXTHOST_WILL_SEND_SOCKET) {
-      return;
-    }
-
     await initializeDefaultConfiguration();
 
     context.subscriptions.push(

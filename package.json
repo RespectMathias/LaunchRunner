@@ -1,111 +1,111 @@
 {
-    "name": "launch-runner",
-    "displayName": "Launch Runner",
-    "description": "JetBrains-style run/debug buttons for VS Code with quick access to launch configurations and tasks",
-    "version": "0.0.1",
-    "publisher": "RespectMathias",
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/RespectMathias/LaunchRunner.git"
-    },
-    "engines": {
-        "vscode": "^1.80.0"
-    },
-    "type": "commonjs",
-    "categories": [
-        "Debuggers"
+  "name": "launch-runner",
+  "displayName": "Launch Runner",
+  "description": "JetBrains-style run/debug buttons for VS Code with quick access to launch configurations and tasks",
+  "version": "0.0.1",
+  "publisher": "RespectMathias",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RespectMathias/LaunchRunner.git"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "type": "commonjs",
+  "categories": [
+    "Debuggers"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extensions.js",
+  "icon": "assets/run-icon.png",
+  "contributes": {
+    "commands": [
+      {
+        "command": "launch-runner.run",
+        "title": "Run",
+        "icon": "$(run)"
+      },
+      {
+        "command": "launch-runner.debug",
+        "title": "Debug",
+        "icon": "$(debug)"
+      },
+      {
+        "command": "launch-runner.stop",
+        "title": "Stop",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "launch-runner.restart",
+        "title": "Restart",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "launch-runner.selectConfiguration",
+        "title": "Select Configuration",
+        "icon": "$(kebab-vertical)"
+      }
     ],
-    "activationEvents": [
-        "onStartupFinished"
-    ],
-    "main": "./out/extensions.js",
-    "icon": "assets/run-icon.png",
-    "contributes": {
-        "commands": [
-            {
-                "command": "launch-runner.run",
-                "title": "Run",
-                "icon": "$(run)"
-            },
-            {
-                "command": "launch-runner.debug",
-                "title": "Debug",
-                "icon": "$(debug)"
-            },
-            {
-                "command": "launch-runner.stop",
-                "title": "Stop",
-                "icon": "$(debug-stop)"
-            },
-            {
-                "command": "launch-runner.restart",
-                "title": "Restart",
-                "icon": "$(debug-restart)"
-            },
-            {
-                "command": "launch-runner.selectConfiguration",
-                "title": "Select Configuration",
-                "icon": "$(kebab-vertical)"
-            }
-        ],
-        "menus": {
-            "editor/title": [
-                {
-                    "command": "launch-runner.run",
-                    "when": "launch-runner.hasConfiguration && !launch-runner.isRunning",
-                    "group": "navigation@-1000"
-                },
-                {
-                    "command": "launch-runner.restart",
-                    "when": "launch-runner.hasConfiguration && launch-runner.isRunning",
-                    "group": "navigation@-1000"
-                },
-                {
-                    "command": "launch-runner.debug",
-                    "when": "launch-runner.hasConfiguration && !launch-runner.isTaskSelected && !launch-runner.isRunning",
-                    "group": "navigation@-999"
-                },
-                {
-                    "command": "launch-runner.stop",
-                    "when": "launch-runner.isRunning",
-                    "group": "navigation@-999"
-                },
-                {
-                    "command": "launch-runner.selectConfiguration",
-                    "when": "editorTextFocus || !editorTextFocus",
-                    "group": "navigation@-998"
-                }
-            ]
+    "menus": {
+      "editor/title": [
+        {
+          "command": "launch-runner.run",
+          "when": "launch-runner.hasConfiguration && !launch-runner.isRunning",
+          "group": "navigation@-1000"
+        },
+        {
+          "command": "launch-runner.restart",
+          "when": "launch-runner.hasConfiguration && launch-runner.isRunning",
+          "group": "navigation@-1000"
+        },
+        {
+          "command": "launch-runner.debug",
+          "when": "launch-runner.hasConfiguration && !launch-runner.isTaskSelected && !launch-runner.isRunning",
+          "group": "navigation@-999"
+        },
+        {
+          "command": "launch-runner.stop",
+          "when": "launch-runner.isRunning",
+          "group": "navigation@-999"
+        },
+        {
+          "command": "launch-runner.selectConfiguration",
+          "when": "editorTextFocus || !editorTextFocus",
+          "group": "navigation@-998"
         }
-    },
-    "scripts": {
-        "clean": "bun -e \"require('fs').rmSync('./out', { recursive: true, force: true })\"",
-        "typecheck": "bunx tsc -p ./tsconfig.json --noEmit",
-        "compile": "bun run clean && bun run typecheck && bunx esbuild src/extensions.ts --bundle --outfile=out/extensions.js --external:vscode --format=cjs --platform=node --sourcemap --minify",
-        "watch": "bunx esbuild src/extensions.ts --bundle --outfile=out/extensions.js --external:vscode --format=cjs --platform=node --sourcemap --watch --minify",
-        "compile:e2e": "bunx esbuild tests/e2e/suite/index.ts tests/e2e/suite/extension.e2e.ts --outdir=out/e2e/suite --platform=node --format=cjs --sourcemap",
-        "lint": "bunx eslint src tests",
-        "format": "bunx prettier . --write",
-        "pretest": "bun run lint && bun run typecheck",
-        "test:unit": "bun test tests",
-        "test:e2e": "bun run compile && bun run compile:e2e && bun tests/e2e/runTest.ts",
-        "test": "bun run test:unit",
-        "package": "bun run compile && bunx vsce package --no-dependencies --skip-license"
-    },
-    "devDependencies": {
-        "@types/node": "^20.17.57",
-        "@types/mocha": "^10.0.10",
-        "@types/vscode": "^1.80.0",
-        "@vscode/test-electron": "^2.5.2",
-        "@vscode/vsce": "^3.7.1",
-        "@eslint/js": "^9.39.1",
-        "esbuild": "^0.27.1",
-        "eslint": "^9.39.1",
-        "glob": "^11.0.3",
-        "mocha": "^11.7.4",
-        "prettier": "^3.7.4",
-        "typescript-eslint": "^8.46.1",
-        "typescript": "^5.9.3"
+      ]
     }
+  },
+  "scripts": {
+    "clean": "bun -e \"require('fs').rmSync('./out', { recursive: true, force: true })\"",
+    "typecheck": "bunx tsc -p ./tsconfig.json --noEmit",
+    "compile": "bun run clean && bun run typecheck && bunx esbuild src/extensions.ts --bundle --outfile=out/extensions.js --external:vscode --format=cjs --platform=node --sourcemap --minify",
+    "watch": "bunx esbuild src/extensions.ts --bundle --outfile=out/extensions.js --external:vscode --format=cjs --platform=node --sourcemap --watch --minify",
+    "compile:e2e": "bunx esbuild tests/e2e/suite/index.ts tests/e2e/suite/extension.e2e.ts --bundle --packages=external --outdir=out/e2e/suite --platform=node --format=cjs --sourcemap --external:vscode",
+    "lint": "bunx eslint src tests",
+    "format": "bunx prettier . --write",
+    "pretest": "bun run lint && bun run typecheck",
+    "test:unit": "bun test tests",
+    "test:e2e": "bun run compile && bun run compile:e2e && bun tests/e2e/runTest.ts",
+    "test": "bun run test:unit",
+    "package": "bun run compile && bunx vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.57",
+    "@types/mocha": "^10.0.10",
+    "@types/vscode": "^1.80.0",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.7.1",
+    "@eslint/js": "^9.39.1",
+    "esbuild": "^0.27.3",
+    "eslint": "^9.39.1",
+    "glob": "^11.0.3",
+    "mocha": "^11.7.4",
+    "prettier": "^3.7.4",
+    "typescript-eslint": "^8.46.1",
+    "typescript": "^5.9.3"
+  }
 }

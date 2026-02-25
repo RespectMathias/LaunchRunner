@@ -23,6 +23,11 @@ function createFakeEnvironment(params?: {
   launchConfigurations?: Array<{ name: string; request?: string }>;
   workspaceFolders?: Array<{ uri: { fsPath: string } }>;
   startDebuggingResult?: boolean;
+  startDebuggingImpl?: (
+    folder: unknown,
+    name: string,
+    options?: { noDebug?: boolean },
+  ) => Promise<boolean>;
 }): FakeEnvironment {
   const commands = new Map<string, CommandHandler>();
   const executeCommandCalls: Array<{ command: string; args: unknown[] }> = [];
@@ -51,16 +56,16 @@ function createFakeEnvironment(params?: {
       },
     },
     workspace: {
-      workspaceFolders: params?.workspaceFolders ?? [
+      workspaceFolders: (params?.workspaceFolders ?? [
         { uri: { fsPath: "workspace" } },
-      ],
+      ]) as never,
       getConfiguration: () => ({
-        get: () => launchConfigurations,
+        get: <T>() => launchConfigurations as unknown as T,
       }),
     },
     tasks: {
       fetchTasks: async () => [],
-      executeTask: async () => ({ terminate: () => undefined }),
+      executeTask: async () => ({ terminate: () => undefined }) as never,
       onDidEndTask: () => ({ dispose: () => undefined }),
     },
     debug: {
@@ -70,6 +75,9 @@ function createFakeEnvironment(params?: {
         options?: { noDebug?: boolean },
       ) => {
         startDebuggingCalls.push({ folder, name, options: options ?? {} });
+        if (params?.startDebuggingImpl) {
+          return params.startDebuggingImpl(folder, name, options);
+        }
         return params?.startDebuggingResult ?? true;
       },
       stopDebugging: async (session?: unknown) => {
@@ -217,4 +225,60 @@ test("stop command on launch uses debug stop API", async () => {
 
   assert.equal(environment.stopDebuggingCalls.length, 1);
   assert.equal(environment.stopDebuggingCalls[0].sessionProvided, false);
+});
+
+test("run command handles startDebugging rejection and clears running state", async () => {
+  const environment = createFakeEnvironment({
+    launchConfigurations: [{ name: "Run Extension", request: "launch" }],
+    startDebuggingImpl: async () => {
+      throw new Error("boom");
+    },
+  });
+  const runner = __test__.createExtensionController(environment.api, {});
+  const context = { subscriptions: [] as Array<{ dispose: () => void }> };
+
+  await runner.activate(context as never);
+  await environment.commands.get("launch-runner.run")?.();
+
+  assert.equal(environment.startDebuggingCalls.length, 1);
+  assert.equal(environment.errorMessages.length, 1);
+  assert.equal(
+    environment.errorMessages[0],
+    "Failed to start running: Run Extension",
+  );
+
+  const runningContextUpdates = environment.executeCommandCalls
+    .filter(
+      (call) =>
+        call.command === "setContext" &&
+        call.args[0] === "launch-runner.isRunning",
+    )
+    .map((call) => call.args[1]);
+  assert.equal(runningContextUpdates.at(-1), false);
+});
+
+test("run command ignores concurrent starts while one start is pending", async () => {
+  let resolveStart: ((value: boolean) => void) | undefined;
+  const pendingStart = new Promise<boolean>((resolve) => {
+    resolveStart = resolve;
+  });
+
+  const environment = createFakeEnvironment({
+    launchConfigurations: [{ name: "Launch API", request: "launch" }],
+    startDebuggingImpl: async () => pendingStart,
+  });
+  const runner = __test__.createExtensionController(environment.api, {});
+  const context = { subscriptions: [] as Array<{ dispose: () => void }> };
+
+  await runner.activate(context as never);
+
+  const runCommand = environment.commands.get("launch-runner.run");
+  const firstStart = runCommand?.();
+  const secondStart = runCommand?.();
+
+  resolveStart?.(true);
+  await firstStart;
+  await secondStart;
+
+  assert.equal(environment.startDebuggingCalls.length, 1);
 });
