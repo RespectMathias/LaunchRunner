@@ -12,6 +12,9 @@ export async function run(): Promise<void> {
 
     const testsRoot = __dirname;
     const files = await glob("**/*.e2e.js", { cwd: testsRoot });
+    if (files.length === 0) {
+        throw new Error(`No e2e test files found in ${testsRoot}`);
+    }
 
     for (const file of files) {
         mocha.addFile(path.resolve(testsRoot, file));
