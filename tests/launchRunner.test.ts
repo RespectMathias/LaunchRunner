@@ -60,7 +60,10 @@ function createFakeEnvironment(params?: {
         { uri: { fsPath: "workspace" } },
       ]) as never,
       getConfiguration: () => ({
-        get: <T>() => launchConfigurations as unknown as T,
+        get: <T>(section: string) => {
+          void section;
+          return launchConfigurations as unknown as T;
+        },
       }),
     },
     tasks: {
@@ -117,7 +120,7 @@ function createFakeEnvironment(params?: {
 
 test("activate registers launch-runner commands", async () => {
   const environment = createFakeEnvironment();
-  const runner = __test__.createExtensionController(environment.api, {});
+  const runner = __test__.createExtensionController(environment.api);
 
   const context = { subscriptions: [] as Array<{ dispose: () => void }> };
   await runner.activate(context as never);
@@ -134,7 +137,7 @@ test("run command auto-selects the only launch configuration", async () => {
   const environment = createFakeEnvironment({
     launchConfigurations: [{ name: "Launch API", request: "launch" }],
   });
-  const runner = __test__.createExtensionController(environment.api, {});
+  const runner = __test__.createExtensionController(environment.api);
   const context = { subscriptions: [] as Array<{ dispose: () => void }> };
 
   await runner.activate(context as never);
@@ -165,7 +168,7 @@ test("run command auto-selects the only launch configuration", async () => {
 
 test("run command reports an error without an open workspace", async () => {
   const environment = createFakeEnvironment({ workspaceFolders: [] });
-  const runner = __test__.createExtensionController(environment.api, {});
+  const runner = __test__.createExtensionController(environment.api);
   const context = { subscriptions: [] as Array<{ dispose: () => void }> };
 
   await runner.activate(context as never);
@@ -179,7 +182,7 @@ test("debug command starts debugging with noDebug false", async () => {
   const environment = createFakeEnvironment({
     launchConfigurations: [{ name: "Debug API", request: "launch" }],
   });
-  const runner = __test__.createExtensionController(environment.api, {});
+  const runner = __test__.createExtensionController(environment.api);
   const context = { subscriptions: [] as Array<{ dispose: () => void }> };
 
   await runner.activate(context as never);
@@ -197,7 +200,6 @@ test("restart command on launch reruns with same noDebug mode", async () => {
   });
   const runner = __test__.createExtensionController(
     environment.api,
-    {},
     async () => undefined,
   );
   const context = { subscriptions: [] as Array<{ dispose: () => void }> };
@@ -216,7 +218,7 @@ test("stop command on launch uses debug stop API", async () => {
   const environment = createFakeEnvironment({
     launchConfigurations: [{ name: "Run Extension", request: "launch" }],
   });
-  const runner = __test__.createExtensionController(environment.api, {});
+  const runner = __test__.createExtensionController(environment.api);
   const context = { subscriptions: [] as Array<{ dispose: () => void }> };
 
   await runner.activate(context as never);
@@ -234,7 +236,7 @@ test("run command handles startDebugging rejection and clears running state", as
       throw new Error("boom");
     },
   });
-  const runner = __test__.createExtensionController(environment.api, {});
+  const runner = __test__.createExtensionController(environment.api);
   const context = { subscriptions: [] as Array<{ dispose: () => void }> };
 
   await runner.activate(context as never);
@@ -267,7 +269,7 @@ test("run command ignores concurrent starts while one start is pending", async (
     launchConfigurations: [{ name: "Launch API", request: "launch" }],
     startDebuggingImpl: async () => pendingStart,
   });
-  const runner = __test__.createExtensionController(environment.api, {});
+  const runner = __test__.createExtensionController(environment.api);
   const context = { subscriptions: [] as Array<{ dispose: () => void }> };
 
   await runner.activate(context as never);

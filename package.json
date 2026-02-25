@@ -73,7 +73,6 @@
         },
         {
           "command": "launch-runner.selectConfiguration",
-          "when": "editorTextFocus || !editorTextFocus",
           "group": "navigation@-998"
         }
       ]

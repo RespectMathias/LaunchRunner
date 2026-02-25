@@ -83,7 +83,6 @@ interface ExtensionController {
 
 function createExtensionController(
   api: VscodeApi,
-  env: NodeJS.ProcessEnv = process.env,
   wait: (milliseconds: number) => Promise<void> = (milliseconds) =>
     new Promise((resolve) => setTimeout(resolve, milliseconds)),
 ): ExtensionController {
@@ -93,8 +92,6 @@ function createExtensionController(
   let currentSession: vscode.DebugSession | vscode.TaskExecution | null = null;
   let isRunning = false;
   let isStartingConfiguration = false;
-
-  void env;
 
   async function updateContext(): Promise<void> {
     await api.commands.executeCommand(
@@ -384,9 +381,6 @@ function createExtensionController(
     if (lastSelectedType === "task") {
       if (isTaskExecution(currentSession)) {
         currentSession.terminate();
-        currentSession = null;
-        isRunning = false;
-        await updateContext();
       }
       return;
     }
@@ -395,26 +389,33 @@ function createExtensionController(
       await api.debug.stopDebugging(currentSession);
     } else {
       await api.debug.stopDebugging();
+      await api.commands.executeCommand("workbench.action.debug.disconnect");
+      await api.commands.executeCommand("workbench.action.debug.stop");
+      currentSession = null;
+      isRunning = false;
+      await updateContext();
     }
-
-    await api.commands.executeCommand("workbench.action.debug.disconnect");
-    await api.commands.executeCommand("workbench.action.debug.stop");
-    currentSession = null;
-    isRunning = false;
-    await updateContext();
   }
 
-  async function waitUntilStopped(timeoutMs = 2000): Promise<void> {
+  async function waitUntilStopped(timeoutMs = 2000): Promise<boolean> {
     const startedAt = Date.now();
     while (isRunning && Date.now() - startedAt < timeoutMs) {
       await wait(25);
     }
+
+    return !isRunning;
   }
 
   async function restartConfiguration(): Promise<void> {
     if (lastSelectedType === "task") {
       await stopConfiguration();
-      await waitUntilStopped();
+      const stopped = await waitUntilStopped();
+      if (!stopped) {
+        await api.window.showWarningMessage(
+          "Could not restart because the current task is still running.",
+        );
+        return;
+      }
       await executeConfiguration(true);
       return;
     }
@@ -425,7 +426,13 @@ function createExtensionController(
     }
 
     await stopConfiguration();
-    await waitUntilStopped();
+    const stopped = await waitUntilStopped();
+    if (!stopped) {
+      await api.window.showWarningMessage(
+        "Could not restart because the current session is still running.",
+      );
+      return;
+    }
     await executeConfiguration(lastLaunchNoDebug);
   }
 
@@ -458,6 +465,9 @@ function createExtensionController(
       api.debug.onDidTerminateDebugSession((session) => {
         if (currentSession === session) {
           currentSession = null;
+          isRunning = false;
+          void updateContext();
+        } else if (currentSession === null && isRunning) {
           isRunning = false;
           void updateContext();
         }
