@@ -9,8 +9,8 @@ Install from the VS Code Marketplace.
 ## Build
 
 ```bash
-npm install
-npx vsce package
+bun install
+bun package
 ```
 
 ## Usage
