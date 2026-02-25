@@ -4,7 +4,7 @@ JetBrains-style run/debug buttons for VS Code.
 
 ## Install
 
-Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/vscode).
+Install from the VS Code Marketplace.
 
 ## Build
 
@@ -15,7 +15,7 @@ npx vsce package
 
 ## Usage
 
-Click **...** to select a launch configuration or task. Use **▶️ Run** or **🐞 Debug** buttons to execute.
+Click **...** to select a launch configuration or task. Use **▶Run** or **Debug** buttons to execute.
 
 ## Requirements
 
