@@ -338,9 +338,18 @@ function createExtensionController(
       }
 
       if (selectedConfig.configType === "task") {
-        currentSession = await api.tasks.executeTask(selectedConfig.task);
-        isRunning = true;
-        await updateContext();
+        try {
+          currentSession = await api.tasks.executeTask(selectedConfig.task);
+          isRunning = true;
+          await updateContext();
+        } catch {
+          currentSession = null;
+          isRunning = false;
+          await updateContext();
+          await api.window.showErrorMessage(
+            `Failed to start task: ${selectedConfig.name}`,
+          );
+        }
         return;
       }
 
@@ -378,14 +387,12 @@ function createExtensionController(
   }
 
   async function stopConfiguration(): Promise<void> {
-    if (lastSelectedType === "task") {
-      if (isTaskExecution(currentSession)) {
-        currentSession.terminate();
-      }
+    if (isTaskExecution(currentSession)) {
+      currentSession.terminate();
       return;
     }
 
-    if (currentSession && !isTaskExecution(currentSession)) {
+    if (currentSession) {
       await api.debug.stopDebugging(currentSession);
     } else {
       await api.debug.stopDebugging();

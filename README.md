@@ -15,7 +15,7 @@ npx vsce package
 
 ## Usage
 
-Click **...** to select a launch configuration or task. Use **▶Run** or **Debug** buttons to execute.
+Click **...** to select a launch configuration or task. Use **Run** or **Debug** buttons to execute.
 
 ## Known Limitations
 
