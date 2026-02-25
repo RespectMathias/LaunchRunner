@@ -4,7 +4,7 @@ JetBrains-style run/debug buttons for VS Code.
 
 ## Install
 
-Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/vscode).
+Install from the VS Code Marketplace.
 
 ## Build
 
@@ -15,7 +15,11 @@ npx vsce package
 
 ## Usage
 
-Click **...** to select a launch configuration or task. Use **▶️ Run** or **🐞 Debug** buttons to execute.
+Click **...** to select a launch configuration or task. Use **Run** or **Debug** buttons to execute.
+
+## Known Limitations
+
+Some VS Code launch types (notably `extensionHost` when started in Run/noDebug mode) may not reliably support Stop/Restart from either this extension or VS Code's built-in debug toolbar. This behavior comes from the underlying VS Code/debug adapter flow for those launch types.
 
 ## Requirements
 

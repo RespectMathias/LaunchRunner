@@ -1,7 +1,9 @@
 .vscode/**
 .vscode-test/**
-test/**
+tests/**
 .gitignore
-.eslintrc.json
+eslint.config.js
 **/*.map
 **/*.ts
+bun.lock
+tsconfig.json
