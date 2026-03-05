@@ -9,8 +9,14 @@ Install from the VS Code Marketplace.
 ## Build
 
 ```bash
-bun install
-bun package
+npm install
+npm run package
+```
+
+## Test
+
+```bash
+npm test
 ```
 
 ## Usage

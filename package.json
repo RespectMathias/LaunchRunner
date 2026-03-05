@@ -79,32 +79,25 @@
     }
   },
   "scripts": {
-    "clean": "bun -e \"require('fs').rmSync('./out', { recursive: true, force: true })\"",
-    "typecheck": "bunx tsc -p ./tsconfig.json --noEmit",
-    "compile": "bun run clean && bun run typecheck && bunx esbuild src/extensions.ts --bundle --outfile=out/extensions.js --external:vscode --format=cjs --platform=node --sourcemap --minify",
-    "watch": "bunx esbuild src/extensions.ts --bundle --outfile=out/extensions.js --external:vscode --format=cjs --platform=node --sourcemap --watch --minify",
-    "compile:e2e": "bunx esbuild tests/e2e/suite/index.ts tests/e2e/suite/extension.e2e.ts --bundle --packages=external --outdir=out/e2e/suite --platform=node --format=cjs --sourcemap --external:vscode",
-    "lint": "bunx eslint src tests",
-    "format": "bunx prettier . --write",
-    "pretest": "bun run lint && bun run typecheck",
-    "test:unit": "bun test tests",
-    "test:e2e": "bun run compile && bun run compile:e2e && bun tests/e2e/runTest.ts",
-    "test": "bun run test:unit",
-    "package": "bun run compile && bunx vsce package --no-dependencies"
+    "clean": "node -e \"require('fs').rmSync('./out', { recursive: true, force: true })\"",
+    "typecheck": "tsc -p ./tsconfig.json --noEmit",
+    "compile": "npm run clean && npm run typecheck && tsc -p ./tsconfig.json",
+    "watch": "tsc -p ./tsconfig.json --watch",
+    "lint": "eslint src tests",
+    "format": "prettier . --write",
+    "pretest": "npm run lint && npm run typecheck",
+    "test": "node --import tsx --test \"tests/**/*.test.ts\"",
+    "package": "npm run compile && vsce package"
   },
   "devDependencies": {
-    "@types/node": "^20.17.57",
-    "@types/mocha": "^10.0.10",
-    "@types/vscode": "^1.80.0",
-    "@vscode/test-electron": "^2.5.2",
-    "@vscode/vsce": "^3.7.1",
     "@eslint/js": "^9.39.1",
-    "esbuild": "^0.27.3",
+    "@types/node": "^20.17.57",
+    "@types/vscode": "^1.80.0",
+    "@vscode/vsce": "^3.7.1",
     "eslint": "^9.39.1",
-    "glob": "^11.0.3",
-    "mocha": "^11.7.4",
     "prettier": "^3.7.4",
-    "typescript-eslint": "^8.46.1",
-    "typescript": "^5.9.3"
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.1"
   }
 }

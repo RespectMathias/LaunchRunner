@@ -6,4 +6,5 @@ eslint.config.js
 **/*.map
 **/*.ts
 bun.lock
+package-lock.json
 tsconfig.json
